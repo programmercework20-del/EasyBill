@@ -182,17 +182,17 @@ export default function MoneyInReport() {
       {/* Bottom Navigation Bar */}
       <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.navButton}>
-          <ChevronLeft color="#7C3AED" size={24} />
+          <ChevronLeft color="#1A73E8" size={24} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.navButton}>
-          <ChevronRight color="#7C3AED" size={24} />
+          <ChevronRight color="#1A73E8" size={24} />
         </TouchableOpacity>
         <View style={{ flex: 1 }} />
         <TouchableOpacity style={styles.actionButton}>
-          <Download color="#7C3AED" size={24} />
+          <Download color="#1A73E8" size={24} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
-          <Share2 color="#7C3AED" size={24} />
+          <Share2 color="#1A73E8" size={24} />
         </TouchableOpacity>
       </View>
     </View>
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
   },
   header: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#1A73E8',
     paddingTop: 50,
     paddingBottom: 16,
     paddingHorizontal: 16,
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: '#1A73E8',
     alignItems: 'center',
   },
   reportTitle: {
@@ -403,14 +403,14 @@ const styles = StyleSheet.create({
   navButton: {
     padding: 8,
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: '#1A73E8',
     borderRadius: 4,
     marginRight: 8,
   },
   actionButton: {
     padding: 8,
     borderWidth: 1,
-    borderColor: '#7C3AED',
+    borderColor: '#1A73E8',
     borderRadius: 4,
     marginLeft: 8,
   },

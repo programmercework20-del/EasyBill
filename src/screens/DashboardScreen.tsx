@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const PRIMARY = "#1A73E8";
 
-export default function DashboardScreen() {
+export default function DashboardScreen({ navigation }: any) {
 
   // Data for the horizontal top scroll
   const topMetrics = [
@@ -129,6 +129,7 @@ export default function DashboardScreen() {
       <View className="p-5 bg-white border-t border-slate-100">
         <TouchableOpacity
           activeOpacity={0.8}
+          onPress={() => navigation.navigate('SelectParty')}
           style={{ backgroundColor: PRIMARY, shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 }}
           className="py-4 rounded-2xl items-center flex-row justify-center gap-2"
         >

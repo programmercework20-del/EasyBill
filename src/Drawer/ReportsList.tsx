@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: '#1A73E8',
     marginTop: 20,
     marginBottom: 12,
     letterSpacing: 0.5,

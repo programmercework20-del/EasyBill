@@ -15,6 +15,7 @@ import MoneyInReport from '../Drawer/Reports/MoneyInReport';
 import MoneyOutReport from '../Drawer/Reports/MoneyOutReport';
 import ExpenseReport from '../Drawer/Reports/ExpenseReport';
 import EstimateReport from '../Drawer/Reports/EstimateReport';
+import SelectPartyScreen from '../screens/SelectPartyScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -37,7 +38,7 @@ export default function RootNavigator() {
               style={{ marginRight: 16 }}
               onPress={() => console.log('PDF clicked')}
             >
-              <FileText color="#7C3AED" size={24} />
+              <FileText color="#1A73E8" size={24} />
             </TouchableOpacity>
           ),
         }}
@@ -76,6 +77,11 @@ export default function RootNavigator() {
         name="EstimateReport" 
         component={EstimateReport} 
         options={{ headerShown: true, title: '2.8 Estimate Report' }}
+      />
+      <Stack.Screen 
+        name="SelectParty" 
+        component={SelectPartyScreen} 
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
