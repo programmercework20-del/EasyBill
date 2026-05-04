@@ -7,75 +7,178 @@ import {
     MenuSquare, Plus
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+    useGetCategoriesQuery,
+    useGetItemsQuery,
+    useDeleteItemMutation,
+    useDeleteCategoryMutation
+} from '../redux/api/inventoryApi';
+import { useSearch } from '../hooks/useSearch';
+import CustomAlert from '../components/CustomAlert';
+
+
 
 export default function InventoryList() {
     const navigation = useNavigation();
     const [activeTab, setActiveTab] = useState<'inventory' | 'categories'>('categories');
+    const { data: categoryDataRaw, isLoading: isCategoriesLoading } = useGetCategoriesQuery();
+    const { data: itemsData, isLoading: itemsLoading, refetch: refetchItems } = useGetItemsQuery();
+    const [deleteItem] = useDeleteItemMutation();
+    const [deleteCategory] = useDeleteCategoryMutation();
 
-    // MOCK DATA for Inventory
-    const inventoryData = [
-        { id: '1', name: 'AMANTARAN KOTHI KURTA PAJAMA 2500', price: 2500, stock: 50, image: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf' },
-        { id: '2', name: 'Amantran Koti', price: 2800, stock: 1, image: 'https://images.unsplash.com/photo-1593030761757-71fae45fa0e7' },
-        { id: '3', name: 'Bahubali', price: 1850, stock: 50, image: null },
-        { id: '4', name: 'BAHUBALI', price: 1580, stock: 50, image: null },
-        { id: '5', name: 'Bahubali', price: 1500, stock: 50, image: null },
-    ];
+    const [alertVisible, setAlertVisible] = useState(false);
+    const [alertConfig, setAlertConfig] = useState({
+        type: 'info' as 'success' | 'error' | 'info',
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        confirmText: 'Delete',
+    });
 
-    // MOCK DATA for Categories
-    const categoryData = [
-        { id: '1', name: 'Amantaran Kothi Set', count: 3 },
-        { id: '2', name: 'Bahubali Kids Ethnic', count: 6 },
-        { id: '3', name: 'Blazer', count: 3 },
-        { id: '4', name: 'Brand Codra (basic)', count: 1 },
-        { id: '5', name: 'Branded Cargo', count: 1 },
-        { id: '6', name: 'Branded Jeans', count: 6 },
-        { id: '7', name: 'Branded Trouser', count: 2 },
-        { id: '8', name: 'Cargo', count: 3 },
-        { id: '9', name: 'Fardin Taj', count: 0 },
-        { id: '10', name: 'Hoodies', count: 2 },
-        { id: '11', name: 'Jeans', count: 6 },
-        { id: '12', name: 'Jodhpuri', count: 4 },
-    ];
+    const {
+        isSearchOpen,
+        search,
+        setSearch,
+        openSearch,
+        closeSearch,
+    } = useSearch();
+
+    const items = itemsData?.data || [];
+    const categoryData = categoryDataRaw?.data || [];
+
+    console.log('[InventoryList] Screen loaded');
+    console.log('[InventoryList] Items raw response:', JSON.stringify(itemsData));
+    console.log('[InventoryList] Items count:', items.length, '| Loading:', itemsLoading);
+    console.log('[InventoryList] Categories count:', categoryData.length, '| Loading:', isCategoriesLoading);
+    console.log('[InventoryList] Active tab:', activeTab, '| Search:', search);
+
+    // Fix localhost URLs for physical device
+    const fixImageUrl = (url: string): string => {
+        if (!url) return url;
+        return url.replace('http://localhost:5000', 'https://4sb8r8b7-5000.inc1.devtunnels.ms');
+    };
+
+    const filteredCategories = categoryData.filter((item) =>
+        item.name?.toLowerCase().includes(search.toLowerCase())
+    );
+
+    const filteredItems = items.filter((item) =>
+        item.name?.toLowerCase().includes(search.toLowerCase())
+    );
 
     const renderInventoryItem = ({ item }) => (
-        <View className="bg-[#F8F9FA] flex-row p-3 mb-2 rounded-md border border-gray-300 shadow-sm mx-2 mt-1">
-            {/* Image container */}
-            <View className="w-[80px] h-[100px] bg-[#E8E7EE] mr-3 items-center justify-center rounded-sm overflow-hidden">
-                {item.image ? (
-                    <Image source={{ uri: item.image }} className="w-full h-full" resizeMode="cover" />
+        <View className="bg-white rounded-2xl p-3 mb-3 mx-3 shadow-md border border-slate-100 flex-row">
+
+            {/* Image */}
+            <View className="w-20 h-24 bg-slate-100 rounded-xl overflow-hidden mr-3">
+                {item.images && item.images.length > 0 ? (
+                    <Image
+                        source={{ uri: fixImageUrl(item.images[0]) }}
+                        className="w-full h-full"
+                        resizeMode="cover"
+                    />
                 ) : (
-                    <ImageIcon color="#A0A0B0" size={40} />
+                    <View className="flex-1 items-center justify-center">
+                        <ImageIcon size={30} color="#94a3b8" />
+                    </View>
                 )}
             </View>
 
-            {/* Details */}
-            <View className="flex-1 justify-between py-1">
-                <View>
-                    <Text className="text-black font-extrabold text-sm uppercase leading-tight">{item.name}</Text>
-                    <Text className="text-[#38A6D3] text-sm mt-1">₹ {item.price}</Text>
-                    <Text className="text-green-600 text-[13px] font-medium mt-1">Current Stock: {item.stock}</Text>
+            {/* Info */}
+            <View className="flex-1 justify-between">
+                <View className="flex-row justify-between items-start">
+                    <Text className="text-slate-900 font-semibold text-sm leading-tight flex-1 mr-2">
+                        {item.name}
+                    </Text>
+                    <View className="flex-row space-x-2 gap-2">
+                        <TouchableOpacity onPress={() => {
+                            console.log('[InventoryList] ✏️ Editing item:', JSON.stringify(item));
+                            navigation.navigate('NewItem', { item });
+                        }}>
+                            <Edit3 size={18} color="#64748b" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => {
+                            setAlertConfig({
+                                type: 'error',
+                                title: 'Delete Item',
+                                message: `Are you sure you want to delete "${item.name}"? This action cannot be undone.`,
+                                confirmText: 'Delete',
+                                onConfirm: async () => {
+                                    try {
+                                        await deleteItem(item.id || item._id).unwrap();
+                                        console.log('[InventoryList] ✅ Item deleted successfully');
+                                    } catch (err) {
+                                        console.error('[InventoryList] ❌ Failed to delete item:', err);
+                                    }
+                                }
+                            });
+                            setAlertVisible(true);
+                        }}>
+                            <Trash2 size={18} color="#ef4444" />
+                        </TouchableOpacity>
+                    </View>
                 </View>
-                <TouchableOpacity className="border border-[#1A73E8] rounded-md px-3 py-1 self-start mt-2">
-                    <Text className="text-[#1A73E8] text-xs font-semibold">Adjust Stock</Text>
+
+                <View className="flex-row justify-between items-center mt-2">
+                    <Text className="text-[#1A73E8] font-bold text-base">
+                        ₹{item.sellPrice || item.price || 0}
+                    </Text>
+
+                    <Text className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
+                        {item.stockQuantity || item.stock || 0} in stock
+                    </Text>
+                </View>
+                <TouchableOpacity className="mt-2 self-start bg-blue-50 px-3 py-1 rounded-full w-36">
+                    <Text className="text-[#1A73E8] text-xs font-semibold">
+                        Adjust Stock
+                    </Text>
                 </TouchableOpacity>
+
             </View>
 
-            {/* Action Icons */}
-            <View className="justify-end items-center flex-col ml-2 space-y-4 pb-2">
-                <Star color="#EAB308" size={22} className="mb-2" />
-                <CheckCircle2 color="#22C55E" size={22} />
-            </View>
         </View>
     );
 
     const renderCategoryItem = ({ item }) => (
-        <View className="bg-white flex-row justify-between items-center px-4 py-3 mb-2 rounded border border-gray-700 shadow-sm mx-2">
-            <Text className="text-black text-[17px] flex-1">{item.name} ({item.count})</Text>
-            <View className="flex-row items-center space-x-4">
-                <TouchableOpacity><Edit3 color="#000" size={22} /></TouchableOpacity>
-                <TouchableOpacity><Trash2 color="#EF4444" size={22} /></TouchableOpacity>
-                <TouchableOpacity><CheckCircle2 color="#22C55E" size={22} /></TouchableOpacity>
+        <View className="bg-white mx-3 mb-3 p-4 rounded-xl shadow-sm border border-slate-100 flex-row justify-between items-center">
+
+            <Text className="text-slate-800 font-semibold">
+                {item.name}
+            </Text>
+
+            <View className="flex-row items-center space-x-3 gap-2">
+                <Text className="text-xs bg-slate-100 px-2 py-1 rounded-full">
+                    {item.count || 0}
+                </Text>
+
+                <TouchableOpacity onPress={() => {
+                    console.log('[InventoryList] ✏️ Editing category:', JSON.stringify(item));
+                    navigation.navigate('NewItemCategory', { category: item });
+                }}>
+                    <Edit3 size={18} color="#64748b" />
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => {
+                    setAlertConfig({
+                        type: 'error',
+                        title: 'Delete Category',
+                        message: `Are you sure you want to delete category "${item.name}"? This will not delete the items in this category.`,
+                        confirmText: 'Delete',
+                        onConfirm: async () => {
+                            try {
+                                await deleteCategory(item.id || item._id).unwrap();
+                                console.log('[InventoryList] ✅ Category deleted successfully');
+                            } catch (err) {
+                                console.error('[InventoryList] ❌ Failed to delete category:', err);
+                            }
+                        }
+                    });
+                    setAlertVisible(true);
+                }}>
+                    <Trash2 size={18} color="#ef4444" />
+                </TouchableOpacity>
             </View>
+
         </View>
     );
 
@@ -84,76 +187,114 @@ export default function InventoryList() {
             <StatusBar backgroundColor="#1A73E8" barStyle="light-content" />
 
             {/* Header */}
-            <View className="bg-[#1A73E8] pt-4 pb-3 px-4 flex-row items-center justify-between z-10">
-                <View className="flex-row items-center flex-1">
-                    <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3">
-                        <ArrowLeft color="#fff" size={24} />
-                    </TouchableOpacity>
-                    <View>
-                        <Text className="text-white text-[19px] font-bold">
-                            {activeTab === 'inventory' ? 'Item List' : 'Item Categories List'}
-                        </Text>
-                        <Text className="text-indigo-200 text-xs mt-0.5 tracking-tight">FAST v39.08 | 9518795065 | 1043</Text>
-                    </View>
-                </View>
+            <View className="bg-[#1A73E8] pt-5 pb-4 px-4 rounded-b-3xl shadow-lg">
+                <View className="flex-row items-center justify-between">
 
-                <View className="flex-row space-x-4 items-center">
-                    {activeTab === 'inventory' && (
-                        <TouchableOpacity><Search color="#fff" size={22} /></TouchableOpacity>
-                    )}
-                    <TouchableOpacity><RefreshCcw color="#fff" size={22} /></TouchableOpacity>
-                    {activeTab === 'inventory' && (
-                        <TouchableOpacity><MoreVertical color="#fff" size={22} /></TouchableOpacity>
-                    )}
+                    <View className="flex-row items-center">
+                        <TouchableOpacity onPress={() => navigation.goBack()}>
+                            <ArrowLeft color="#fff" size={24} />
+                        </TouchableOpacity>
+
+                        <Text className="text-white text-xl font-bold ml-3">
+                            {activeTab === 'inventory' ? 'Inventory' : 'Categories'}
+                        </Text>
+                    </View>
+
+                    <View className="flex-row space-x-4">
+                        {/* <Search color="#fff" size={22} /> */}
+                        <TouchableOpacity onPress={openSearch}>
+                            <Search color="#fff" size={22} />
+                        </TouchableOpacity>
+                        <MoreVertical color="#fff" size={22} />
+                    </View>
+
                 </View>
             </View>
+
+            {isSearchOpen && (
+                <View className="px-4 mt-3 flex-row items-center bg-white rounded-xl border border-gray-200 mr-4 ml-4">
+
+                    <TextInput
+                        placeholder="Search..."
+                        placeholderTextColor="#9CA3AF"
+                        value={search}
+                        onChangeText={setSearch}
+                        className="flex-1 px-3 py-2 text-gray-800"
+                    />
+
+                    <TouchableOpacity onPress={closeSearch}>
+                        <Text className="text-[#1A73E8] px-3">Cancel</Text>
+                    </TouchableOpacity>
+
+                </View>
+            )}
 
             {/* Sub Header / Tabs */}
-            <View className="bg-white px-2 py-2 flex-row justify-between items-center shadow-sm z-0 relative">
-                <View className="text-xs text-gray-800 font-medium absolute left-2 top-0"><Text className="text-[10px] text-gray-500">📥 27/04/26 04:12:00 PM</Text></View>
-            </View>
+            <View className="px-4 mt-4">
+                <View className="flex-row bg-white rounded-full p-1 shadow-sm">
 
-            <View className="px-2 pt-2 pb-2 bg-gray-50">
-                <View className="flex-row border border-gray-300 rounded-sm overflow-hidden bg-white">
                     <TouchableOpacity
-                        className={`flex-1 py-3 items-center justify-center ${activeTab === 'inventory' ? 'bg-[#1A73E8]' : 'bg-white'}`}
                         onPress={() => setActiveTab('inventory')}
+                        className={`flex-1 py-2 rounded-full items-center ${activeTab === 'inventory' ? 'bg-[#1A73E8]' : ''
+                            }`}
                     >
-                        <Text className={`font-bold ${activeTab === 'inventory' ? 'text-white' : 'text-gray-800'}`}>INVENTORY (145)</Text>
+                        <Text className={`${activeTab === 'inventory' ? 'text-white' : 'text-gray-600'} font-semibold`}>
+                            Inventory
+                        </Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        className={`flex-1 py-3 items-center justify-center border-l border-gray-300 ${activeTab === 'categories' ? 'bg-[#1A73E8]' : 'bg-white'}`}
-                        onPress={() => setActiveTab('categories')}
-                    >
-                        <Text className={`font-bold ${activeTab === 'categories' ? 'text-white' : 'text-gray-800'}`}>CATEGORIES (24)</Text>
-                    </TouchableOpacity>
-                </View>
 
-                {/* Filter Dropdown (Only for Inventory) */}
-                {activeTab === 'inventory' && (
-                    <View className="mt-2 bg-white border border-gray-300 rounded-md px-3 py-2 flex-row justify-between items-center">
-                        <Text className="text-gray-600 font-semibold uppercase text-xs">Filter</Text>
-                        <MoreVertical color="#9CA3AF" size={16} style={{ transform: [{ rotate: '90deg' }] }} />
-                    </View>
-                )}
+                    <TouchableOpacity
+                        onPress={() => setActiveTab('categories')}
+                        className={`flex-1 py-2 rounded-full items-center ${activeTab === 'categories' ? 'bg-[#1A73E8]' : ''
+                            }`}
+                    >
+                        <Text className={`${activeTab === 'categories' ? 'text-white' : 'text-gray-600'} font-semibold`}>
+                            Categories
+                        </Text>
+                    </TouchableOpacity>
+
+                </View>
             </View>
 
-            {/* List Content */}
-            <View className="flex-1 mb-2">
+            <View className="flex-1 mb-2 mt-2">
                 {activeTab === 'inventory' ? (
-                    <FlatList
-                        data={inventoryData}
-                        keyExtractor={item => item.id}
-                        renderItem={renderInventoryItem}
-                        contentContainerStyle={{ paddingBottom: 100, paddingTop: 4 }}
-                    />
+                    itemsLoading ? (
+                        <View className="flex-1 items-center justify-center">
+                            <Text className="text-gray-500 font-medium">Loading inventory...</Text>
+                        </View>
+                    ) : (
+                        <FlatList
+                            data={search ? filteredItems : items}
+                            keyExtractor={(item) => item._id || item.id}
+                            renderItem={renderInventoryItem}
+                            contentContainerStyle={{ paddingBottom: 100, paddingTop: 4 }}
+                            onRefresh={refetchItems}
+                            refreshing={itemsLoading}
+                            ListEmptyComponent={
+                                <View className="flex-1 items-center justify-center mt-10">
+                                    <Text className="text-gray-500">No items found</Text>
+                                </View>
+                            }
+                        />
+                    )
                 ) : (
-                    <FlatList
-                        data={categoryData}
-                        keyExtractor={item => item.id}
-                        renderItem={renderCategoryItem}
-                        contentContainerStyle={{ paddingBottom: 100, paddingTop: 4 }}
-                    />
+                    isCategoriesLoading ? (
+                        <View className="flex-1 items-center justify-center">
+                            <Text className="text-gray-500 font-medium">Loading categories...</Text>
+                        </View>
+                    ) : (
+                        <FlatList
+                            data={search ? filteredCategories : categoryData}
+                            keyExtractor={(item) => item._id || item.id}
+                            renderItem={renderCategoryItem}
+                            contentContainerStyle={{ paddingBottom: 100, paddingTop: 4 }}
+                            ListEmptyComponent={
+                                <View className="flex-1 items-center justify-center mt-10">
+                                    <Text className="text-gray-500">No categories found</Text>
+                                </View>
+                            }
+                        />
+                    )
                 )}
             </View>
 
@@ -179,14 +320,26 @@ export default function InventoryList() {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        // @ts-ignore
                         onPress={() => navigation.navigate('NewItem')}
-                        className="bg-[#4c3ce8] rounded-full px-8 py-3 shadow-lg elevation-4 flex-row items-center justify-center min-w-[150px]"
+                        className="absolute bottom-6 right-6 bg-[#1A73E8] w-16 h-16 rounded-full items-center justify-center shadow-xl"
                     >
-                        <Text className="text-white font-medium text-base tracking-wider uppercase">New Item</Text>
+                        <Plus color="white" size={26} />
                     </TouchableOpacity>
                 </View>
             )}
+
+            <CustomAlert
+                visible={alertVisible}
+                type={alertConfig.type}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                confirmText={alertConfig.confirmText}
+                onCancel={() => setAlertVisible(false)}
+                onClose={() => {
+                    setAlertVisible(false);
+                    alertConfig.onConfirm();
+                }}
+            />
 
         </SafeAreaView>
     );

@@ -1,6 +1,11 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { User, Settings as SettingsIcon, LogOut, Bell, Shield } from 'lucide-react-native';
+import { logout } from '../redux/slices/authSlice';
+import { clearAuth } from '../utils/authStorage';
+import { useDispatch } from 'react-redux';
+
+
 
 const ListItem = ({ title, subtitle, icon, rightLabel, onPress }: any) => (
   <TouchableOpacity 
@@ -20,6 +25,13 @@ const ListItem = ({ title, subtitle, icon, rightLabel, onPress }: any) => (
 );
 
 export default function SettingsScreen() {
+
+  const dispatch = useDispatch();
+  const handleLogout = async () => {
+  dispatch(logout());
+  await clearAuth();
+};
+
   return (
     <View className="flex-1 bg-slate-900">
       <ScrollView contentContainerClassName="p-6">
@@ -57,7 +69,7 @@ export default function SettingsScreen() {
           title="Logout" 
           subtitle="Sign out from this device"
           icon={<LogOut color="#ef4444" size={24} />}
-          onPress={() => {}}
+          onPress={handleLogout}
         />
       </ScrollView>
     </View>

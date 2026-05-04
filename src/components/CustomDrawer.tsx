@@ -12,8 +12,18 @@ import {
   DrawerItem,
 } from '@react-navigation/drawer';
 import { Home, Package, Users, Settings, LogOut, User } from 'lucide-react-native';
+import { useDispatch } from 'react-redux';
+import { logout } from '../redux/slices/authSlice';
+import { clearAuth } from '../utils/authStorage';
 
 const CustomDrawerContent = (props: any) => {
+
+  const dispatch = useDispatch();
+  const handleLogout = async () => {
+    dispatch(logout());
+    await clearAuth();
+  };
+
   return (
     <View style={styles.container}>
       {/* Header Section with Curved Design */}
@@ -56,7 +66,7 @@ const CustomDrawerContent = (props: any) => {
           label="Logout"
           icon={({ color, size }) => <LogOut color="#ef4444" size={size} />}
           labelStyle={styles.logoutLabel}
-          onPress={() => console.log('Logout pressed')}
+          onPress={handleLogout}
         />
       </View>
     </View>
