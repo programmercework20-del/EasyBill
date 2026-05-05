@@ -15,6 +15,8 @@ import {
 } from '../redux/api/inventoryApi';
 import { useSearch } from '../hooks/useSearch';
 import CustomAlert from '../components/CustomAlert';
+import { useDispatch } from 'react-redux';
+import { setSelectedItem } from '../redux/slices/inventorySlice';
 
 
 
@@ -45,6 +47,8 @@ export default function InventoryList() {
 
     const items = itemsData?.data || [];
     const categoryData = categoryDataRaw?.data || [];
+
+    const dispatch = useDispatch();
 
     console.log('[InventoryList] Screen loaded');
     console.log('[InventoryList] Items raw response:', JSON.stringify(itemsData));
@@ -125,18 +129,34 @@ export default function InventoryList() {
                     </Text>
 
                     <Text className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
-                        {item.stockQuantity || item.stock || 0} in stock
+                        {/* {item.stockQuantity || item.stock || 0} in stock */}
+                        {item.currentStock ?? item.stock ?? 0} in stock
                     </Text>
                 </View>
-                <TouchableOpacity className="mt-2 self-start bg-blue-50 px-3 py-1 rounded-full w-36">
+                <TouchableOpacity
+                    className="mt-2 items-center bg-blue-50 px-2 py-1 rounded-full w-28"
+                    onPress={() => {
+                        dispatch(setSelectedItem(item));
+                        navigation.navigate('ModifyItemStock');
+                    }}
+                >
                     <Text className="text-[#1A73E8] text-xs font-semibold">
                         Adjust Stock
                     </Text>
                 </TouchableOpacity>
 
+
+                {/* <TouchableOpacity
+                    onPress={() => navigation.navigate('ModifyItemStock', { item })}
+                    className="mt-2 self-start bg-[#1A73E8] px-4 py-2 rounded-full shadow-sm active:opacity-80"
+                >
+                    <Text className="text-white text-xs font-semibold tracking-wide">
+                        Adjust Stock
+                    </Text>
+                </TouchableOpacity> */}
             </View>
 
-        </View>
+        </View >
     );
 
     const renderCategoryItem = ({ item }) => (

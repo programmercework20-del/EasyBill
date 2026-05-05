@@ -16,7 +16,7 @@ export default function NewItemCategory() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const dispatch = useDispatch();
-  
+
   const { category } = route.params || {};
   const isEditing = !!category;
 

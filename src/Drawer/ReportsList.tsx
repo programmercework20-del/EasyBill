@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { FileText, ChevronRight } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 
 interface ReportItemProps {
   title: string;
@@ -26,6 +27,8 @@ const SectionHeader = ({ title }: SectionHeaderProps) => (
 );
 
 export default function ReportsList() {
+  const navigation = useNavigation();
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -35,14 +38,14 @@ export default function ReportsList() {
 
         {/* Transaction Reports */}
         <SectionHeader title="TRANSACTION REPORTS" />
-        <ReportItem title="2.1 Sale Report" />
-        <ReportItem title="2.2 Staff Wise Sale Report" />
-        <ReportItem title="2.3 Sale Wise Profit And Loss Statement" />
-        <ReportItem title="2.4 Purchase Report" />
-        <ReportItem title="2.5 Money In Report" />
-        <ReportItem title="2.6 Money Out Report" />
-        <ReportItem title="2.7 Expense Report" />
-        <ReportItem title="2.8 Estimate Report" />
+        <ReportItem title="2.1 Sale Report" onPress={() => navigation.navigate('SaleReport')} />
+        <ReportItem title="2.2 Staff Wise Sale Report" onPress={() => navigation.navigate('StaffWiseSaleReport')} />
+        <ReportItem title="2.3 Sale Wise Profit And Loss Statement" onPress={() => navigation.navigate('SaleWiseProfitAndLossStatement')} />
+        <ReportItem title="2.4 Purchase Report" onPress={() => navigation.navigate('PurchaseReport')} />
+        <ReportItem title="2.5 Money In Report" onPress={() => navigation.navigate('MoneyInReport')} />
+        <ReportItem title="2.6 Money Out Report" onPress={() => navigation.navigate('MoneyOutReport')} />
+        <ReportItem title="2.7 Expense Report" onPress={() => navigation.navigate('ExpenseReport')} />
+        <ReportItem title="2.8 Estimate Report" onPress={() => navigation.navigate('EstimateReport')} />
 
         {/* Party Reports */}
         <SectionHeader title="PARTY REPORTS" />
@@ -78,7 +81,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: '#1A73E8',
     marginTop: 20,
     marginBottom: 12,
     letterSpacing: 0.5,

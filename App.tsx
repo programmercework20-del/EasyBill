@@ -8,6 +8,7 @@ import { getAuth } from './src/utils/authStorage';
 import { setCredentials, finishLoading } from './src/redux/slices/authSlice';
 import { store } from './src/redux/store';
 
+
 function App() {
 
 const InitApp = () => {

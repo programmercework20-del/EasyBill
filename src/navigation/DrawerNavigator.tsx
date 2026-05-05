@@ -76,7 +76,7 @@ export default function DrawerNavigator() {
           title: 'Reports',
           drawerIcon: ({ color, size }) => <FileText color={color} size={size} />,
           headerStyle: {
-            backgroundColor: '#7C3AED',
+            backgroundColor: '#1A73E8',
           },
           headerTintColor: '#fff',
           headerTitleStyle: {
@@ -93,6 +93,8 @@ export default function DrawerNavigator() {
           ),
         })}
       />
+      
+            
     </Drawer.Navigator>
   );
 }
