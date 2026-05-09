@@ -27,7 +27,16 @@ import ExpenseReport from '../Drawer/Reports/ExpenseReport';
 import EstimateReport from '../Drawer/Reports/EstimateReport';
 
 import SelectPartyScreen from '../screens/SelectPartyScreen';
+import SelectItemsScreen from '../screens/SelectItemsScreen';
+import NewSaleScreen from '../screens/NewSaleScreen';
+import SaleDetailsScreen from '../screens/SaleDetailsScreen';
+import SaleSummaryScreen from '../screens/SaleSummaryScreen';
+import InvoicePDFScreen from '../screens/InvoicePDFScreen';
 import ModifyItemStock from '../Inventory/ModifyItemStock';
+import TodaySalesScreen from '../screens/TodaySalesScreen';
+import OnlinePaymentScreen from '../screens/OnlinePaymentScreen';
+import CustomersScreen from '../screens/CustomersScreen';
+import * as DashboardStubs from '../screens/DashboardDetailStubs';
 
 const Stack = createNativeStackNavigator();
 
@@ -129,6 +138,44 @@ export default function RootNavigator() {
         component={SelectPartyScreen}
         options={{ headerShown: false }}
       />
+
+      <Stack.Screen
+        name="SelectItems"
+        component={SelectItemsScreen}
+        options={{ headerShown: false }}
+      />
+
+      <Stack.Screen
+        name="NewSale"
+        component={NewSaleScreen}
+        options={{ headerShown: false }}
+      />
+
+      <Stack.Screen
+        name="SaleDetails"
+        component={SaleDetailsScreen}
+        options={{ headerShown: false }}
+      />
+
+      <Stack.Screen
+        name="SaleSummary"
+        component={SaleSummaryScreen}
+        options={{ headerShown: false }}
+      />
+
+      <Stack.Screen name="InvoicePDF" component={InvoicePDFScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="TodaySalesScreen" component={TodaySalesScreen} options={{ headerShown: true, title: 'Today Sales' }} />
+      <Stack.Screen name="OnlinePaymentScreen" component={OnlinePaymentScreen} options={{ headerShown: true, title: 'Online Payments' }} />
+      <Stack.Screen name="CustomersScreen" component={CustomersScreen} options={{ headerShown: true, title: 'Customers' }} />
+      
+      <Stack.Screen name="LoyalCustomersScreen" component={DashboardStubs.LoyalCustomersScreen} options={{ headerShown: true, title: 'Loyal Customers' }} />
+      <Stack.Screen name="LowStockScreen" component={DashboardStubs.LowStockScreen} options={{ headerShown: true, title: 'Low Stock' }} />
+      <Stack.Screen name="ReceivablePartiesScreen" component={DashboardStubs.ReceivablePartiesScreen} options={{ headerShown: true, title: 'Receivables' }} />
+      <Stack.Screen name="PayablePartiesScreen" component={DashboardStubs.PayablePartiesScreen} options={{ headerShown: true, title: 'Payables' }} />
+      <Stack.Screen name="MoneyInScreen" component={DashboardStubs.MoneyInScreen} options={{ headerShown: true, title: 'Money In' }} />
+      <Stack.Screen name="MoneyOutScreen" component={DashboardStubs.MoneyOutScreen} options={{ headerShown: true, title: 'Money Out' }} />
+      <Stack.Screen name="TopProductsScreen" component={DashboardStubs.TopProductsScreen} options={{ headerShown: true, title: 'Top Products' }} />
+      <Stack.Screen name="InventorySummaryScreen" component={DashboardStubs.InventorySummaryScreen} options={{ headerShown: true, title: 'Inventory Summary' }} />
 
     </Stack.Navigator>
   );

@@ -1,145 +1,174 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { 
+  View, 
+  Text, 
+  RefreshControl, 
+  ActivityIndicator, 
+  FlatList,
+  StatusBar,
+  ScrollView,
+  TouchableOpacity
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Plus } from 'lucide-react-native';
+
+// API Hooks
+import { 
+  useGetDashboardSummaryQuery, 
+  useGetRecentSalesQuery,
+} from '../redux/api/dashboardApi';
+import { useDashboardQuickActions } from '../hooks/useDashboardQuickActions';
+
+// Dashboard Components
+import DashboardHeader from '../components/dashboard/DashboardHeader';
+import QuickActionCard from '../components/dashboard/QuickActionCard';
+import QuickActionSkeleton from '../components/dashboard/QuickActionSkeleton';
+import RecentSaleCard from '../components/dashboard/RecentSaleCard';
+import SummaryFooter from '../components/dashboard/SummaryFooter';
 
 const PRIMARY = "#1A73E8";
 
 export default function DashboardScreen({ navigation }: any) {
+  // API Queries for main dashboard flow
+  const { 
+    data: summaryRes, 
+    refetch: refetchSummary, 
+    isLoading: isSummaryLoading 
+  } = useGetDashboardSummaryQuery(undefined);
 
-  // Data for the horizontal top scroll
-  const topMetrics = [
-    { id: 1, title: "Reports", value: "View All", bgTone: "bg-slate-50", valueColor: "text-slate-800" },
-    { id: 2, title: "Sale (TD)", value: "₹1100", icon: "📈", isLink: false, bgTone: "bg-blue-50", valueColor: "text-blue-600" },
-    { id: 3, title: "Online Pay", value: "₹600", icon: "📱", isLink: false, bgTone: "bg-green-50", valueColor: "text-green-600" },
-    { id: 4, title: "Offline Pay", value: "₹500", icon: "💵", isLink: false, bgTone: "bg-yellow-50", valueColor: "text-yellow-600" },
-    { id: 5, title: "Pending Dues", value: "₹0", icon: "⏳", isLink: false, bgTone: "bg-red-50", valueColor: "text-red-600" },
-  ];
+  const { 
+    data: recentSalesRes, 
+    refetch: refetchSales, 
+    isLoading: isSalesLoading 
+  } = useGetRecentSalesQuery(undefined);
 
-  const recentTransactions = [
-    { id: "476", name: "Fuzail Hussain", date: "27/04/26", saleAmount: 1100, paymentMethod: "CASH" }
-  ];
+  // Dynamic Quick Actions
+  const { actions, isLoading: isActionsLoading } = useDashboardQuickActions();
 
-  return (
-    <SafeAreaView className="flex-1 bg-[#F8FAFC]">
-      <ScrollView className="flex-1 pt-2" showsVerticalScrollIndicator={false}>
+  const [refreshing, setRefreshing] = useState(false);
 
-        {/* HORIZONTAL SCROLLABLE METRICS CARDS */}
-        <View className="mb-6 mt-4">
-          <ScrollView
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      refetchSummary(), 
+      refetchSales()
+    ]);
+    setRefreshing(false);
+  }, [refetchSummary, refetchSales]);
+
+  // Extract Data
+  const summaryData = summaryRes?.data || {};
+  const recentSales = useMemo(() => recentSalesRes?.data || [], [recentSalesRes]);
+
+  const renderHeader = () => (
+    <View className="bg-[#F8FAFC]">
+      {/* Dynamic Quick Actions Scroll */}
+      <View className="py-4">
+        {isActionsLoading ? (
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={{ paddingHorizontal: 20 }}
+          >
+            {[1, 2, 3, 4].map((i) => <QuickActionSkeleton key={i} />)}
+          </ScrollView>
+        ) : (
+          <FlatList
+            data={actions}
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20 }} // Adds padding to start and end of scroll
-          >
-            {topMetrics.map((metric) => (
-              <TouchableOpacity
-                key={metric.id}
-                activeOpacity={metric.isLink ? 0.7 : 1}
-                className="bg-white w-36 rounded-2xl p-5 shadow-sm border border-slate-400 mr-4"
-              >
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingHorizontal: 20 }}
+            renderItem={({ item }) => (
+              <QuickActionCard
+                title={item.title}
+                value={item.value}
+                subtitle={item.subtitle}
+                iconName={item.icon}
+                color={item.color}
+                bgColor={item.bgColor}
+                onPress={() => navigation.navigate(item.screen)}
+              />
+            )}
+          />
+        )}
+      </View>
 
-                <Text className="text-slate-400 text-xs font-medium uppercase tracking-wider mb-1">
-                  {metric.title}
-                </Text>
-                <Text className={`font-extrabold text-xl ${metric.valueColor}`}>
-                  {metric.value}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+      {/* Recent Sales Header */}
+      <DashboardHeader onFilterPress={() => navigation.navigate('SaleList')} />
+      
+      {isSalesLoading && recentSales.length === 0 && (
+        <View className="py-20 items-center justify-center">
+          <ActivityIndicator size="large" color={PRIMARY} />
         </View>
+      )}
 
-        {/* The rest of your app content goes below but wrapped in px-5 to maintain layout */}
-        <View className="px-5">
-          {/* END DAY BUTTON */}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            className="bg-white border-2 border-dashed border-blue-200 rounded-2xl py-3.5 items-center mb-8"
-          >
-            <Text style={{ color: PRIMARY }} className="font-bold tracking-wide">
-              CLOSE REGISTER (END DAY)
-            </Text>
-          </TouchableOpacity>
-
-          {/* SECTION TITLE */}
-          <View className="flex-row justify-between items-end mb-4">
-            <Text className="text-slate-800 font-bold text-lg">Recent Sales</Text>
-            <TouchableOpacity>
-              <Text style={{ color: PRIMARY }} className="text-sm font-semibold">See All</Text>
-            </TouchableOpacity>
-          </View>
-
-
-
-          {/* TRANSACTION CARD */}
-          <View className="border border-gray-300 rounded-xl p-4 mb-4">
-
-            {/* NAME + RECEIPT + DATE */}
-            <View className="flex-row justify-between mb-2">
-              <Text className="text-black font-semibold">
-                Fuzail Hussain
-              </Text>
-
-              <Text className="text-gray-500">
-                476 | 27/04/26
-              </Text>
-            </View>
-
-            {/* SALE + MONEY IN */}
-            <View className="flex-row justify-between mb-3">
-              <Text style={{ color: PRIMARY }}>
-                Sale: ₹1100
-              </Text>
-
-              <Text className="text-green-600 font-medium">
-                MoneyIn: ₹1100
-              </Text>
-            </View>
-
-            {/* PAYMENT TYPE */}
-            <View className="flex-row gap-2">
-              <View className="flex-1 border border-gray-300 rounded-lg py-2 items-center">
-                <Text className="text-gray-400">UPI/BANK</Text>
-              </View>
-
-              <View className="flex-1 border rounded-lg py-2 items-center"
-                style={{ borderColor: PRIMARY }}>
-                <Text style={{ color: PRIMARY }} className="font-semibold">
-                  CASH
-                </Text>
-              </View>
-
-              <View className="flex-1 border border-gray-300 rounded-lg py-2 items-center">
-                <Text className="text-gray-400">CHEQUE</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* CONNECT PRINTER */}
-          <TouchableOpacity className="flex-row justify-center items-center gap-2 bg-slate-50 rounded-2xl py-4 mb-10">
-            <Text className="text-xl">🖨️</Text>
-            <Text className="text-slate-600 font-semibold">
-              Connect Thermal Printer
-            </Text>
-          </TouchableOpacity>
+      {recentSales.length === 0 && !isSalesLoading && (
+        <View className="mx-5 py-10 items-center justify-center border-2 border-dashed border-slate-200 rounded-[32px] bg-white mb-6">
+          <Text className="text-slate-400 font-medium">No recent sales found</Text>
         </View>
+      )}
+    </View>
+  );
 
-      </ScrollView>
+  const renderFooter = () => (
+    <SummaryFooter 
+      totalSales={summaryData.totalSalesAmount || 0}
+      totalTransactions={summaryData.totalSalesCount || 0}
+      totalMoneyIn={summaryData.totalAmountReceived || 0}
+    />
+  );
+
+  const renderItem = useCallback(({ item, index }: { item: any, index: number }) => (
+    <RecentSaleCard 
+      sale={item} 
+      index={index}
+      onPress={() => navigation.navigate('SaleSummary', { saleId: item.id })} 
+    />
+  ), [navigation]);
+
+  return (
+    <SafeAreaView className="flex-1 bg-[#F8FAFC]" edges={['bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
+      
+      <FlatList
+        data={recentSales}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderItem}
+        ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[PRIMARY]} />
+        }
+      />
 
       {/* FLOATING BOTTOM BUTTON */}
-      <View className="p-5 bg-white border-t border-slate-100">
+      <View 
+        className="absolute bottom-8 left-0 right-0 px-8 bg-transparent"
+        style={{ pointerEvents: 'box-none' }}
+      >
         <TouchableOpacity
-          activeOpacity={0.8}
+          activeOpacity={0.9}
           onPress={() => navigation.navigate('SelectParty')}
-          style={{ backgroundColor: PRIMARY, shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 }}
-          className="py-4 rounded-2xl items-center flex-row justify-center gap-2"
+          className="bg-blue-600 rounded-[24px] py-5 items-center flex-row justify-center shadow-2xl border border-blue-500"
+          style={{ 
+            shadowColor: '#1A73E8', 
+            shadowOffset: { width: 0, height: 15 }, 
+            shadowOpacity: 0.4, 
+            shadowRadius: 20, 
+            elevation: 15,
+          }}
         >
-          <Text className="text-white font-black text-xl mb-1">+</Text>
-          <Text className="text-white font-bold text-lg tracking-wide">
-            NEW INVOICE
+          <View className="bg-white/20 p-1.5 rounded-lg mr-3">
+            <Plus color="#fff" size={24} strokeWidth={3} />
+          </View>
+          <Text className="text-white font-black text-lg tracking-[2px] uppercase">
+            New Invoice
           </Text>
         </TouchableOpacity>
       </View>
-
     </SafeAreaView>
   );
 }

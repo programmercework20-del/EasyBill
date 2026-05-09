@@ -5,6 +5,7 @@ import { ArrowLeft, Search, ChevronDown, Plus, RotateCw } from 'lucide-react-nat
 import { useSearch } from '../hooks/useSearch';
 import { useGetPartiesQuery, useGetPartyCategoriesQuery } from '../redux/api/partyApi';
 import { useRefresh } from '../hooks/useRefresh';
+import SearchBar from '../components/ui/SearchBar';
 
 const PRIMARY = "#1A73E8";
 
@@ -12,7 +13,7 @@ export default function SelectPartyScreen({ navigation }: any) {
   const [activeTab, setActiveTab] = useState<'CUSTOMER' | 'salesman'>('CUSTOMER');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [showCatDropdown, setShowCatDropdown] = useState(false);
-  const { search, setSearch } = useSearch();
+  const { search, setSearch, isSearchOpen, openSearch, closeSearch } = useSearch();
 
   // ✅ API CALLS
   const { data: partiesData, isLoading: isLoadingParties, refetch, isFetching } = useGetPartiesQuery({
@@ -76,14 +77,25 @@ export default function SelectPartyScreen({ navigation }: any) {
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerTitle}>Select Party</Text>
           </View>
+          <TouchableOpacity onPress={openSearch} style={styles.searchButton}>
+            <Search color="white" size={20} />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => refetch()} style={styles.searchButton}>
             <RotateCw color="white" size={20} />
           </TouchableOpacity>
         </View>
       </View>
 
+      <SearchBar
+        isVisible={isSearchOpen}
+        value={search}
+        onChangeText={setSearch}
+        onCancel={closeSearch}
+        placeholder="Search parties..."
+      />
+
       {/* Search Row */}
-      <View style={styles.searchRow}>
+      <View style={styles.searchRow} className='mt-2'>
         <View>
           <TouchableOpacity 
             style={styles.categoryDropdown}
@@ -127,15 +139,6 @@ export default function SelectPartyScreen({ navigation }: any) {
           <Plus color={PRIMARY} size={14} />
           <Text style={styles.addPartyText}>Party</Text>
         </TouchableOpacity>
-        <View style={styles.phoneSearchContainer}>
-          <TextInput
-            style={styles.phoneSearchInput}
-            placeholder="Search by Name"
-            placeholderTextColor="#999"
-            value={search}
-            onChangeText={setSearch}
-          />
-        </View>
       </View>
 
       {/* Tabs */}
@@ -181,7 +184,14 @@ export default function SelectPartyScreen({ navigation }: any) {
           <>
             {filteredList.length > 0 ? (
               filteredList.map((party: any) => (
-                <TouchableOpacity key={party.id || party._id} style={styles.partyCard}>
+                <TouchableOpacity
+                  key={party.id || party._id}
+                  style={styles.partyCard}
+                  onPress={() => navigation.navigate('SelectItems', {
+                    party,
+                    partyType: activeTab,
+                  })}
+                >
                   <Text style={styles.partyName}>{party.name}</Text>
                   <Text style={styles.partyPhone}>{party.phone}</Text>
                   <Text style={styles.partyBilling}>{party.billing_type || 'REGULAR'}</Text>

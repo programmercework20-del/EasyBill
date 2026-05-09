@@ -228,7 +228,7 @@
 
 
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -242,41 +242,11 @@ import { ArrowLeft, Mic, ChevronDown, Check } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGetPartiesQuery, useGetPartyCategoriesQuery, useCreatePartyMutation } from '../redux/api/partyApi';
+import FloatingInput from '../components/ui/FloatingInput';
+import CustomAlert from '../components/CustomAlert';
 
-const FloatingInput = React.memo(({
-  label,
-  value,
-  onChangeText,
-  multiline = false,
-  keyboardType = 'default',
-}) => {
-  const [isFocused, setIsFocused] = useState(false);
 
-  return (
-    <View className="mb-5">
-      {(isFocused || value) && (
-        <Text className="absolute left-3 -top-2 bg-gray-100 px-1 text-xs text-[#1A73E8] z-10">
-          {label}
-        </Text>
-      )}
 
-      <View className="bg-white border border-gray-300 rounded-xl px-4 py-4 flex-row items-center">
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder={!isFocused ? label : ''}
-          placeholderTextColor="#9CA3AF"
-          multiline={multiline}
-          keyboardType={keyboardType}
-          className="flex-1 text-gray-800"
-        />
-        {/* <Mic size={20} color="#6B7280" /> */}
-      </View>
-    </View>
-  );
-});
 
 export default function NewParty() {
   const navigation = useNavigation();
@@ -290,6 +260,14 @@ export default function NewParty() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [address, setAddress] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    type: 'info' as 'success' | 'error' | 'info',
+    title: '',
+    message: '',
+    onConfirm: null as any,
+  });
 
   // ✅ API CALLS
   const { data: catData } = useGetPartyCategoriesQuery();
@@ -315,7 +293,8 @@ export default function NewParty() {
 
   const handleSave = async () => {
     if (!name || !phone) {
-      Alert.alert('Error', 'Please fill Name and Phone Number');
+      // Alert.alert('Error', 'Please fill Name and Phone Number');
+      showAlert('error', 'Error', 'Please fill Name and Phone Number');
       return;
     }
 
@@ -331,13 +310,20 @@ export default function NewParty() {
       };
 
       await createParty(payload).unwrap();
-      Alert.alert('Success', 'Party created successfully');
+      // Alert.alert('Success', 'Party created successfully');
+      showAlert('success', 'Success', 'Party created successfully');
       navigation.goBack();
     } catch (err: any) {
       console.log('❌ Error creating party:', err);
-      Alert.alert('Error', err?.data?.message || 'Failed to create party');
+      // Alert.alert('Error', err?.data?.message || 'Failed to create party');
+      showAlert('error', 'Error', err?.data?.message || 'Failed to create party');
     }
   };
+
+  const showAlert = useCallback((type: 'success' | 'error' | 'info', title: string, message: string, onConfirm: any = null) => {
+    setAlertConfig({ type, title, message, onConfirm });
+    setAlertVisible(true);
+  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
@@ -392,80 +378,82 @@ export default function NewParty() {
           </TouchableOpacity>
 
         </View>
+        <View className="bg-white rounded-[28px] border border-[#E5E7EB] px-4 py-5 shadow-sm">
 
-        {/* INPUTS */}
-        <FloatingInput
-          label="Customer/Salesman Name"
-          value={name}
-          onChangeText={setName}
-        />
+          {/* INPUTS */}
+          <FloatingInput
+            label="Customer/Salesman Name"
+            value={name}
+            onChangeText={setName}
+          />
 
-        <FloatingInput
-          label="Phone Number"
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="numeric"
-        />
+          <FloatingInput
+            label="Phone Number"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="numeric"
+          />
 
-        {/* CATEGORY DROPDOWN */}
-        <View className="mb-5">
+          {/* CATEGORY DROPDOWN */}
+          <View className="mb-5">
 
-          {(category) && (
-            <Text className="absolute left-3 -top-2 bg-gray-100 px-1 text-xs text-[#1A73E8] z-10">
-              Select Party Category
-            </Text>
-          )}
+            {(category) && (
+              <Text className="absolute left-3 -top-2 bg-gray-100 px-1 text-xs text-[#1A73E8] z-10">
+                Select Party Category
+              </Text>
+            )}
 
-          <TouchableOpacity
-            onPress={() => setShowDropdown(!showDropdown)}
-            className="bg-white border border-gray-300 rounded-xl px-4 py-4 flex-row items-center"
-          >
-            <Text className={`flex-1 ${category ? 'text-gray-800' : 'text-gray-400'}`}>
-              {category || 'Select Party Category'}
-            </Text>
-            <ChevronDown size={20} color="#6B7280" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowDropdown(!showDropdown)}
+              className="bg-white border border-gray-300 rounded-xl px-4 py-4 flex-row items-center"
+            >
+              <Text className={`flex-1 ${category ? 'text-gray-800' : 'text-gray-400'}`}>
+                {category || 'Select Party Category'}
+              </Text>
+              <ChevronDown size={20} color="#6B7280" />
+            </TouchableOpacity>
 
-          {showDropdown && (
-            <View className="bg-white mt-2 rounded-xl shadow-md border border-gray-200">
+            {showDropdown && (
+              <View className="bg-white mt-2 rounded-xl shadow-md border border-gray-200">
 
-              {dropdownData.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  onPress={() => {
-                    setShowDropdown(false);
+                {dropdownData.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => {
+                      setShowDropdown(false);
 
-                    if (item.id === 'add') {
-                      navigation.navigate('NewPartyCategory', { type });
-                    } else {
-                      setCategory(item.name);
-                      setSelectedCategoryId(item.id.toString());
-                    }
-                  }}
-                  className="p-4 border-b border-gray-100"
-                >
-                  <Text className={`${item.id === 'add' ? 'text-[#1A73E8] font-semibold' : 'text-gray-800'}`}>
-                    {item.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                      if (item.id === 'add') {
+                        navigation.navigate('NewPartyCategory', { type });
+                      } else {
+                        setCategory(item.name);
+                        setSelectedCategoryId(item.id.toString());
+                      }
+                    }}
+                    className="p-4 border-b border-gray-100"
+                  >
+                    <Text className={`${item.id === 'add' ? 'text-[#1A73E8] font-semibold' : 'text-gray-800'}`}>
+                      {item.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
 
-            </View>
-          )}
+              </View>
+            )}
 
+          </View>
+
+          <FloatingInput
+            label="Billing Address"
+            value={address}
+            onChangeText={setAddress}
+            multiline
+          />
         </View>
-
-        <FloatingInput
-          label="Billing Address"
-          value={address}
-          onChangeText={setAddress}
-          multiline
-        />
 
       </ScrollView>
 
       {/* SAVE */}
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={handleSave}
         disabled={isSaving}
         className={`absolute bottom-6 right-6 bg-[#1A73E8] px-12 py-4 rounded-full shadow-lg ${isSaving ? 'opacity-50' : ''}`}
@@ -474,6 +462,17 @@ export default function NewParty() {
           {isSaving ? 'SAVING...' : 'SAVE'}
         </Text>
       </TouchableOpacity>
+
+      <CustomAlert
+        visible={alertVisible}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onClose={() => {
+          setAlertVisible(false);
+          if (alertConfig.onConfirm) alertConfig.onConfirm();
+        }}
+      />
 
     </SafeAreaView>
   );

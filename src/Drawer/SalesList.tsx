@@ -1,210 +1,235 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-
-const salesData = [
-  { id: 522, name: 'RAMZAN', amount: 3600 },
-  { id: 521, name: 'Fuzail Hussain', amount: 3500 },
-  { id: 520, name: 'Fuzail Hussain', amount: 1650 },
-  { id: 519, name: 'Fuzail Hussain', amount: 2100 },
-  { id: 518, name: 'Fuzail Hussain', amount: 2600 },
-];
-
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, Text, FlatList, Modal, TouchableOpacity, RefreshControl } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useGetRecentSalesQuery } from '../redux/api/dashboardApi';
+import { Check, X } from 'lucide-react-native';
+
+// Reusable Sales Components
+import SalesHeader from '../components/sales/SalesHeader';
+import SalesSummaryCard from '../components/sales/SalesSummaryCard';
+import SaleTransactionCard from '../components/sales/SaleTransactionCard';
+import DateFilterCard from '../components/sales/DateFilterCard';
+import FloatingActionBar from '../components/sales/FloatingActionBar';
+import DetailSkeleton from '../components/dashboard/detail/DetailSkeleton';
+import DetailEmptyState from '../components/dashboard/detail/DetailEmptyState';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const PRIMARY = "#2563EB";
 
 export default function SaleList() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
+
+  // Filter states
+  const [filterType, setFilterType] = useState('All Time');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [fromDate, setFromDate] = useState<string | null>(null);
+  const [toDate, setToDate] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const getQueryParams = useCallback(() => {
+    const params: any = {};
+    const today = new Date();
+
+    if (filterType === 'Today') {
+      const start = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+      const end = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+      params.startDate = start;
+      params.endDate = end;
+    } else if (filterType === 'Yesterday') {
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const start = new Date(yesterday.setHours(0, 0, 0, 0)).toISOString();
+      const end = new Date(yesterday.setHours(23, 59, 59, 999)).toISOString();
+      params.startDate = start;
+      params.endDate = end;
+    } else if (filterType === 'This Month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+      params.startDate = start;
+    } else if (filterType === 'Last Month') {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString();
+      const end = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999).toISOString();
+      params.startDate = start;
+      params.endDate = end;
+    } else if (filterType === 'Custom' && fromDate && toDate) {
+      params.startDate = fromDate;
+      params.endDate = toDate;
+    }
+    return params;
+  }, [filterType, fromDate, toDate]);
+
+  // API Hooks
+  const queryParams = useMemo(() => getQueryParams(), [getQueryParams]);
+  const { data, isLoading, refetch } = useGetRecentSalesQuery(queryParams);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
+
+  const filterOptions = ['All Time', 'Today', 'Yesterday', 'This Month', 'Last Month', 'Custom'];
+  const salesData = useMemo(() => data?.data || [], [data]);
+
+  const totalAmount = useMemo(() =>
+    salesData.reduce((sum: number, sale: any) => sum + (Number(sale.total) || 0), 0)
+    , [salesData]);
+
+  const totalCount = salesData.length;
+
+  const handleFilterSelect = (type: string) => {
+    setFilterType(type);
+    setShowFilterModal(false);
+  };
+
+  const renderItem = useCallback(({ item }: { item: any }) => (
+    <SaleTransactionCard
+      customerName={item.customer?.name}
+      invoiceNumber={item.invoiceNumber || item.id?.split('-')[0]}
+      date={item.createdAt}
+      amount={item.total || 0}
+      paymentMethod={item.payment_method || 'CASH'}
+      onPress={() => navigation.navigate('SaleSummary', { saleId: item.id })}
+      onReturn={() => console.log('Return Sale:', item.id)}
+    />
+  ), [navigation]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+    <SafeAreaView className="flex-1 bg-white">
+      <SalesHeader
+        title="Sales Transactions"
+        subtitle="Manage and track all recent sales"
+        onFilterPress={() => setShowFilterModal(true)}
+      />
 
-      {/* 🔥 Date Filter (NEW ADDED) */}
-      <View style={{ padding: 10 }}>
+      <FlatList
+        data={salesData}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[PRIMARY]} />
+        }
+        ListHeaderComponent={
+          <View className="mb-6">
+            {/* Filter Pill Row */}
+            <View className="mb-6">
+              <TouchableOpacity
+                onPress={() => setShowFilterModal(true)}
+                activeOpacity={0.7}
+                className="bg-slate-50 px-5 py-4 rounded-2xl flex-row items-center justify-between border border-slate-100"
+              >
+                <View>
+                  <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-0.5">Time Period</Text>
+                  <Text className="text-slate-900 font-bold text-base">{filterType}</Text>
+                </View>
+                <View className="w-8 h-8 rounded-full bg-white items-center justify-center border border-slate-100 shadow-sm">
+                  <Check size={14} color={PRIMARY} />
+                </View>
+              </TouchableOpacity>
 
-        {/* Today Dropdown */}
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#fff',
-            padding: 15,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderColor: '#ddd',
-            marginBottom: 10,
-            flexDirection: 'row',
-            justifyContent: 'space-between'
-          }}
-        >
-          <Text style={{ fontSize: 16 }}>Today</Text>
-          <Text>▼</Text>
-        </TouchableOpacity>
-
-        {/* Date Range */}
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-
-          {/* From Date */}
-          <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: '#fff',
-              padding: 15,
-              borderRadius: 10,
-              borderWidth: 1,
-              borderColor: '#ddd',
-              flexDirection: 'row',
-              justifyContent: 'space-between'
-            }}
-          >
-            <Text>24/04/26</Text>
-            <Text>▼</Text>
-          </TouchableOpacity>
-
-          {/* To Date */}
-          <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: '#fff',
-              padding: 15,
-              borderRadius: 10,
-              borderWidth: 1,
-              borderColor: '#ddd',
-              flexDirection: 'row',
-              justifyContent: 'space-between'
-            }}
-          >
-            <Text>01/05/26</Text>
-            <Text>▼</Text>
-          </TouchableOpacity>
-
-        </View>
-
-      </View>
-
-      {/* Top Summary */}
-      <View style={{ padding: 10 }}>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          
-          <View style={{
-            flex: 1,
-            backgroundColor: '#fff',
-            padding: 15,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderColor: 'green'
-          }}>
-            <Text>Amount</Text>
-            <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
-              ₹ 219299.51
-            </Text>
-          </View>
-
-          <View style={{
-            width: 100,
-            backgroundColor: '#fff',
-            padding: 15,
-            borderRadius: 10,
-            borderWidth: 1,
-            borderColor: '#4F46E5'
-          }}>
-            <Text>Count</Text>
-            <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
-              94
-            </Text>
-          </View>
-
-        </View>
-      </View>
-
-      {/* List */}
-      <ScrollView style={{ padding: 10 }}>
-        {salesData.map((item) => (
-          <View
-            key={item.id}
-            style={{
-              backgroundColor: '#fff',
-              padding: 15,
-              borderRadius: 12,
-              marginBottom: 10,
-              borderWidth: 1,
-              borderColor: '#ddd'
-            }}
-          >
-            {/* Top Row */}
-            <View style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between'
-            }}>
-              <Text style={{
-                borderWidth: 1,
-                borderStyle: 'dashed',
-                padding: 5,
-                borderRadius: 5
-              }}>
-                {item.name}
-              </Text>
-
-              <Text>{item.id} | 30/04/26</Text>
+              {filterType === 'Custom' && (
+                <View className="flex-row gap-x-3 mt-3">
+                  <DateFilterCard
+                    label="From"
+                    value={fromDate ? new Date(fromDate).toLocaleDateString() : 'Start Date'}
+                    onPress={() => console.log('Open from picker')}
+                    isActive={!!fromDate}
+                  />
+                  <DateFilterCard
+                    label="To"
+                    value={toDate ? new Date(toDate).toLocaleDateString() : 'End Date'}
+                    onPress={() => console.log('Open to picker')}
+                    isActive={!!toDate}
+                  />
+                </View>
+              )}
             </View>
 
-            {/* Amount */}
-            <Text style={{
-              marginTop: 5,
-              color: '#2563eb',
-              fontSize: 16
-            }}>
-              ₹ {item.amount} | <Text style={{ color: 'green' }}>Paid</Text>
-            </Text>
+            {/* Summary Row */}
+            <View className="flex-row gap-x-4">
+              <SalesSummaryCard
+                label="Total Revenue"
+                value={totalAmount.toLocaleString()}
+                icon="amount"
+                isLoading={isLoading}
+                accentColor="#16A34A"
+                trend="+8.2%"
+              />
+              <SalesSummaryCard
+                label="Total Sales"
+                value={totalCount}
+                icon="count"
+                isLoading={isLoading}
+                accentColor="#2563EB"
+              />
+            </View>
 
-            <Text style={{ color: '#888', marginTop: 3 }}>
-              Created by Admin
-            </Text>
+            <View className="mt-8 mb-2">
+              <Text className="text-slate-900 font-black text-xl tracking-tight">Recent Transactions</Text>
+            </View>
+          </View>
+        }
+        ListEmptyComponent={
+          isLoading ? (
+            <DetailSkeleton />
+          ) : (
+            <DetailEmptyState
+              title="No Sales Found"
+              subtitle="Looks like you haven't made any sales in this period."
+            />
+          )
+        }
+      />
 
-            {/* Button */}
-            <View style={{ alignItems: 'flex-end', marginTop: 10 }}>
+      <FloatingActionBar
+        onVisualize={() => console.log('Visualize')}
+        onNewSale={() => navigation.navigate('SelectParty')}
+      />
+
+      {/* Filter Modal Redesign */}
+      <Modal
+        visible={showFilterModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View className="flex-1 bg-black/40 justify-end">
+          <TouchableOpacity className="flex-1" onPress={() => setShowFilterModal(false)} />
+          <View className="bg-white rounded-t-[40px] px-8 pt-8 pb-12 shadow-2xl">
+            <View className="flex-row items-center justify-between mb-8">
+              <View>
+                <Text className="text-slate-900 text-2xl font-black">Filter by Time</Text>
+                <Text className="text-slate-400 text-sm font-medium">Select a period to view sales</Text>
+              </View>
               <TouchableOpacity
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#1A73E8',
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                  borderRadius: 6
-                }}
+                onPress={() => setShowFilterModal(false)}
+                className="w-10 h-10 rounded-full bg-slate-50 items-center justify-center"
               >
-                <Text style={{ color: '#1A73E8' }}>
-                  Sale Return
-                </Text>
+                <X size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
 
+            <View className="flex-row flex-wrap gap-3">
+              {filterOptions.map((option) => {
+                const isActive = filterType === option;
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    onPress={() => handleFilterSelect(option)}
+                    activeOpacity={0.7}
+                    className={`px-6 py-4 rounded-2xl border ${isActive ? 'bg-blue-600 border-blue-600' : 'bg-slate-50 border-slate-100'
+                      }`}
+                  >
+                    <Text className={`font-bold text-sm ${isActive ? 'text-white' : 'text-slate-600'}`}>
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-        ))}
-      </ScrollView>
-
-      {/* Bottom Buttons */}
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        padding: 10
-      }}>
-        <TouchableOpacity style={{
-          backgroundColor: '#1A73E8',
-          padding: 15,
-          borderRadius: 25,
-          width: '40%',
-          alignItems: 'center'
-        }}>
-          <Text style={{ color: '#fff' }}>VISUALIZE</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={{
-          backgroundColor: '#1A73E8',
-          padding: 15,
-          borderRadius: 25,
-          width: '40%',
-          alignItems: 'center'
-        }}>
-          <Text style={{ color: '#fff' }}>NEW SALE</Text>
-        </TouchableOpacity>
-      </View>
-
-    </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }

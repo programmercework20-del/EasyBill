@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, StatusBar, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Image, StatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import SearchBar from '../components/ui/SearchBar';
 import {
     ArrowLeft, Search, RefreshCcw, MoreVertical,
     Edit3, Trash2, CheckCircle2, Star, Image as ImageIcon,
@@ -17,6 +18,8 @@ import { useSearch } from '../hooks/useSearch';
 import CustomAlert from '../components/CustomAlert';
 import { useDispatch } from 'react-redux';
 import { setSelectedItem } from '../redux/slices/inventorySlice';
+import PrimaryButton from '../components/ui/PrimaryButton';
+import StatusBadge from '../components/ui/StatusBadge';
 
 
 
@@ -124,26 +127,25 @@ export default function InventoryList() {
                 </View>
 
                 <View className="flex-row justify-between items-center mt-2">
-                    <Text className="text-[#1A73E8] font-bold text-base">
+                    <Text style={{ color: '#1A73E8', fontWeight: '700', fontSize: 15 }}>
                         ₹{item.sellPrice || item.price || 0}
                     </Text>
 
-                    <Text className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
-                        {/* {item.stockQuantity || item.stock || 0} in stock */}
-                        {item.currentStock ?? item.stock ?? 0} in stock
-                    </Text>
+                    <StatusBadge
+                        label={`${item.currentStock ?? item.stock ?? 0} in stock`}
+                        variant={(item.currentStock ?? item.stock ?? 0) > 0 ? 'success' : 'error'}
+                    />
                 </View>
-                <TouchableOpacity
-                    className="mt-2 items-center bg-blue-50 px-2 py-1 rounded-full w-28"
+                <PrimaryButton
+                    title="Adjust Stock"
+                    variant="soft"
+                    size="sm"
                     onPress={() => {
                         dispatch(setSelectedItem(item));
                         navigation.navigate('ModifyItemStock');
                     }}
-                >
-                    <Text className="text-[#1A73E8] text-xs font-semibold">
-                        Adjust Stock
-                    </Text>
-                </TouchableOpacity>
+                    style={{ marginTop: 8, alignSelf: 'flex-start' }}
+                />
 
 
                 {/* <TouchableOpacity
@@ -225,29 +227,18 @@ export default function InventoryList() {
                         <TouchableOpacity onPress={openSearch}>
                             <Search color="#fff" size={22} />
                         </TouchableOpacity>
-                        <MoreVertical color="#fff" size={22} />
+                        {/* <MoreVertical color="#fff" size={22} /> */}
                     </View>
 
                 </View>
             </View>
 
-            {isSearchOpen && (
-                <View className="px-4 mt-3 flex-row items-center bg-white rounded-xl border border-gray-200 mr-4 ml-4">
-
-                    <TextInput
-                        placeholder="Search..."
-                        placeholderTextColor="#9CA3AF"
-                        value={search}
-                        onChangeText={setSearch}
-                        className="flex-1 px-3 py-2 text-gray-800"
-                    />
-
-                    <TouchableOpacity onPress={closeSearch}>
-                        <Text className="text-[#1A73E8] px-3">Cancel</Text>
-                    </TouchableOpacity>
-
-                </View>
-            )}
+            <SearchBar
+                isVisible={isSearchOpen}
+                value={search}
+                onChangeText={setSearch}
+                onCancel={closeSearch}
+            />
 
             {/* Sub Header / Tabs */}
             <View className="px-4 mt-4">
